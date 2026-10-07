@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>오늘 뭐 먹지? - 점심메뉴 추천</title>
+  <style>
+    :root{
+      --bg:#f7f7f2;
+      --card:#ffffff;
+      --text:#1f2937;
+      --muted:#6b7280;
+      --line:#e5e7eb;
+      --accent:#ff6b35;
+      --accent2:#ffb703;
+      --green:#22c55e;
+      --shadow:0 14px 40px rgba(31,41,55,.08);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(255,183,3,.14), transparent 28%),
+        radial-gradient(circle at top right, rgba(255,107,53,.10), transparent 24%),
+        var(--bg);
+      color:var(--text);
+    }
+    .wrap{max-width:1100px;margin:0 auto;padding:24px}
+    header{
+      display:flex;justify-content:space-between;align-items:center;gap:16px;
+      padding:12px 0 24px;
+    }
+    .brand h1{margin:0;font-size:clamp(1.7rem,5vw,2.8rem);letter-spacing:-.04em}
+    .brand p{margin:8px 0 0;color:var(--muted)}
+    .today{
+      background:rgba(255,255,255,.75);backdrop-filter:blur(10px);
+      border:1px solid rgba(255,255,255,.8);border-radius:18px;padding:12px 16px;
+      font-weight:700;box-shadow:var(--shadow);white-space:nowrap
+    }
+    .grid{
+      display:grid;
+      grid-template-columns:330px 1fr;
+      gap:22px;
+      align-items:start;
+    }
+    .panel,.hero,.menu-card,.history{
+      background:rgba(255,255,255,.9);
+      border:1px solid rgba(229,231,235,.9);
+      border-radius:24px;
+      box-shadow:var(--shadow);
+    }
+    .panel{padding:20px;position:sticky;top:18px}
+    .panel h2,.history h3{margin-top:0}
+    .group{margin:20px 0}
+    .group-title{font-size:.92rem;font-weight:800;margin-bottom:10px}
+    .chips{display:flex;flex-wrap:wrap;gap:8px}
+    .chip{
+      border:1px solid var(--line);background:#fff;color:var(--text);
+      border-radius:999px;padding:10px 13px;cursor:pointer;font-weight:700;
+      transition:.2s transform,.2s background,.2s border-color;
+    }
+    .chip:hover{transform:translateY(-1px)}
+    .chip.active{background:#fff2ec;border-color:#ffb59a;color:#b9380b}
+    .range-row{display:flex;align-items:center;gap:12px}
+    input[type=range]{width:100%;accent-color:var(--accent)}
+    .price-badge{min-width:88px;text-align:right;font-weight:800}
+    .primary{
+      width:100%;border:0;border-radius:18px;padding:15px 18px;
+      font-size:1rem;font-weight:900;cursor:pointer;color:white;
+      background:linear-gradient(135deg,var(--accent),#ff8c42);
+      box-shadow:0 10px 26px rgba(255,107,53,.25);
+      transition:.2s transform,.2s box-shadow;
+    }
+    .primary:hover{transform:translateY(-2px);box-shadow:0 14px 30px rgba(255,107,53,.32)}
+    .primary:active{transform:translateY(0)}
+    .content{display:grid;gap:20px}
+    .hero{
+      padding:28px;min-height:325px;display:grid;grid-template-columns:1.2fr .8fr;
+      gap:22px;align-items:center;overflow:hidden;position:relative;
+    }
+    .hero:before{
+      content:"";position:absolute;width:260px;height:260px;border-radius:50%;
+      right:-60px;bottom:-90px;background:linear-gradient(135deg,#ffe0d3,#fff1bd);
+      opacity:.85
+    }
+    .result{position:relative;z-index:1}
+    .eyebrow{font-weight:900;color:#b9380b;font-size:.9rem}
+    .result h2{font-size:clamp(2rem,6vw,4rem);line-height:1.05;margin:8px 0 12px;letter-spacing:-.05em}
+    .desc{color:var(--muted);font-size:1.04rem;line-height:1.7}
+    .meta{display:flex;flex-wrap:wrap;gap:9px;margin:18px 0}
+    .tag{background:#f3f4f6;border-radius:999px;padding:8px 11px;font-size:.88rem;font-weight:800}
+    .actions{display:flex;gap:10px;flex-wrap:wrap}
+    .secondary{
+      border:1px solid var(--line);background:#fff;border-radius:14px;
+      padding:11px 14px;font-weight:800;cursor:pointer
+    }
+    .visual{
+      position:relative;z-index:1;display:flex;justify-content:center;align-items:center;
+      min-height:220px;
+    }
+    .emoji{
+      width:210px;height:210px;border-radius:50%;
+      display:flex;align-items:center;justify-content:center;
+      font-size:7rem;background:linear-gradient(135deg,#fff7ed,#fff);
+      border:1px solid #ffe0cc;box-shadow:0 18px 40px rgba(255,107,53,.12);
+      animation:float 3s ease-in-out infinite;
+    }
+    @keyframes float{50%{transform:translateY(-8px)}}
+    .section-title{display:flex;justify-content:space-between;align-items:center;margin:0 2px 2px}
+    .section-title h3{margin:0}
+    .count{font-size:.9rem;color:var(--muted)}
+    .cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+    .menu-card{padding:17px;cursor:pointer;transition:.2s transform,.2s border-color}
+    .menu-card:hover{transform:translateY(-3px);border-color:#ffc6b0}
+    .menu-card .top{display:flex;justify-content:space-between;gap:10px;align-items:center}
+    .menu-card .icon{font-size:2rem}
+    .menu-card h4{margin:10px 0 8px;font-size:1.15rem}
+    .menu-card p{margin:0;color:var(--muted);font-size:.92rem;line-height:1.5}
+    .fav{border:0;background:transparent;font-size:1.2rem;cursor:pointer}
+    .history{padding:18px}
+    .history-list{display:flex;flex-wrap:wrap;gap:10px}
+    .history-item{
+      padding:9px 12px;border-radius:12px;background:#f9fafb;border:1px solid var(--line);
+      font-size:.9rem;font-weight:700
+    }
+    .empty{color:var(--muted);font-size:.95rem}
+    .toast{
+      position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);
+      background:#111827;color:#fff;padding:11px 15px;border-radius:999px;
+      opacity:0;pointer-events:none;transition:.25s;z-index:10
+    }
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+    @media (max-width:880px){
+      .grid{grid-template-columns:1fr}
+      .panel{position:static}
+      .hero{grid-template-columns:1fr}
+      .visual{order:-1;min-height:auto}
+      .emoji{width:160px;height:160px;font-size:5.3rem}
+      .cards{grid-template-columns:repeat(2,minmax(0,1fr))}
+    }
+    @media (max-width:560px){
+      .wrap{padding:16px}
+      header{align-items:flex-start;flex-direction:column}
+      .today{font-size:.88rem}
+      .panel,.hero,.history{border-radius:20px}
+      .hero{padding:22px}
+      .cards{grid-template-columns:1fr}
+      .result h2{font-size:2.5rem}
+      .actions>*{flex:1}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <h1>오늘 뭐 먹지? 🍽️</h1>
+        <p>조건만 고르면 점심 고민을 10초 안에 끝내드립니다.</p>
+      </div>
+      <div class="today" id="today"></div>
+    </header>
+
+    <main class="grid">
+      <aside class="panel">
+        <h2>취향 설정</h2>
+
+        <div class="group">
+          <div class="group-title">메뉴 종류</div>
+          <div class="chips" data-filter="category">
+            <button class="chip active" data-value="all">전체</button>
+            <button class="chip" data-value="한식">한식</button>
+            <button class="chip" data-value="중식">중식</button>
+            <button class="chip" data-value="일식">일식</button>
+            <button class="chip" data-value="양식">양식</button>
+            <button class="chip" data-value="분식">분식</button>
+            <button class="chip" data-value="기타">기타</button>
+          </div>
+        </div>
+
+        <div class="group">
+          <div class="group-title">오늘 기분</div>
+          <div class="chips" data-filter="mood">
+            <button class="chip active" data-value="all">아무거나</button>
+            <button class="chip" data-value="든든">든든하게</button>
+            <button class="chip" data-value="깔끔">깔끔하게</button>
+            <button class="chip" data-value="매콤">매콤하게</button>
+            <button class="chip" data-value="빠른">빨리</button>
+          </div>
+        </div>
+
+        <div class="group">
+          <div class="group-title">최대 예산</div>
+          <div class="range-row">
+            <input id="price" type="range" min="7000" max="20000" step="1000" value="14000">
+            <div class="price-badge" id="priceLabel">14,000원</div>
+          </div>
+        </div>
+
+        <button class="primary" id="recommendBtn">🎯 점심 메뉴 추천받기</button>
+      </aside>
+
+      <section class="content">
+        <div class="hero">
+          <div class="result">
+            <div class="eyebrow">오늘의 추천</div>
+            <h2 id="menuName">제육볶음</h2>
+            <div class="desc" id="menuDesc">매콤하고 든든해서 오후까지 힘내기 좋은 직장인 점심의 정석.</div>
+            <div class="meta">
+              <span class="tag" id="menuCategory">한식</span>
+              <span class="tag" id="menuPrice">10,000원</span>
+              <span class="tag" id="menuMood">든든 · 매콤</span>
+            </div>
+            <div class="actions">
+              <button class="secondary" id="favBtn">♡ 즐겨찾기</button>
+              <button class="secondary" id="againBtn">↻ 다시 추천</button>
+            </div>
+          </div>
+          <div class="visual"><div class="emoji" id="menuEmoji">🥘</div></div>
+        </div>
+
+        <div class="section-title">
+          <h3>조건에 맞는 후보</h3>
+          <div class="count" id="candidateCount"></div>
+        </div>
+        <div class="cards" id="cards"></div>
+
+        <div class="history">
+          <h3>최근 추천 기록</h3>
+          <div class="history-list" id="historyList"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const menus = [
+      {name:"제육볶음",cat:"한식",price:10000,mood:["든든","매콤"],emoji:"🥘",desc:"매콤하고 든든해서 오후까지 힘내기 좋은 직장인 점심의 정석."},
+      {name:"김치찌개",cat:"한식",price:9000,mood:["든든","매콤"],emoji:"🍲",desc:"실패 확률이 낮은 익숙한 맛. 밥 한 공기와 가장 잘 어울리는 메뉴."},
+      {name:"순두부찌개",cat:"한식",price:9000,mood:["깔끔","매콤"],emoji:"🍲",desc:"부드럽고 따뜻해서 속 부담은 적고 만족감은 충분한 메뉴."},
+      {name:"비빔밥",cat:"한식",price:10000,mood:["깔끔"],emoji:"🥗",desc:"채소와 밥을 한 번에. 가볍지만 허전하지 않은 균형형 메뉴."},
+      {name:"설렁탕",cat:"한식",price:13000,mood:["든든","깔끔"],emoji:"🥣",desc:"자극적이지 않고 속을 든든하게 채우는 국물 메뉴."},
+      {name:"짜장면",cat:"중식",price:8000,mood:["빠른"],emoji:"🍜",desc:"빠르고 익숙한 선택. 고민하기 싫은 날 가장 강한 후보."},
+      {name:"짬뽕",cat:"중식",price:10000,mood:["매콤","든든"],emoji:"🍜",desc:"얼큰한 국물이 당기는 날에 좋은 스트레스 해소형 점심."},
+      {name:"볶음밥",cat:"중식",price:9000,mood:["빠른","든든"],emoji:"🍚",desc:"빠르게 먹기 좋고 호불호가 적은 실용적인 선택."},
+      {name:"마라탕",cat:"중식",price:13000,mood:["매콤"],emoji:"🌶️",desc:"재료를 취향대로 고를 수 있는 강렬한 맛의 메뉴."},
+      {name:"돈카츠",cat:"일식",price:12000,mood:["든든"],emoji:"🍱",desc:"바삭한 식감과 든든함이 필요할 때 만족도가 높은 메뉴."},
+      {name:"초밥",cat:"일식",price:18000,mood:["깔끔"],emoji:"🍣",desc:"조금 더 산뜻하고 깔끔한 점심을 원할 때 좋은 선택."},
+      {name:"규동",cat:"일식",price:11000,mood:["빠른","든든"],emoji:"🍛",desc:"달큰한 소고기와 밥의 조합. 빠르게 먹고 복귀하기 좋습니다."},
+      {name:"라멘",cat:"일식",price:11000,mood:["든든"],emoji:"🍜",desc:"진한 국물과 면이 당길 때 확실하게 만족감을 주는 메뉴."},
+      {name:"파스타",cat:"양식",price:15000,mood:["깔끔"],emoji:"🍝",desc:"조금 여유 있는 점심에 잘 어울리는 기분전환용 메뉴."},
+      {name:"햄버거",cat:"양식",price:11000,mood:["빠른","든든"],emoji:"🍔",desc:"시간이 부족할 때 빠르고 확실하게 배를 채울 수 있는 선택."},
+      {name:"샐러드",cat:"양식",price:12000,mood:["깔끔","빠른"],emoji:"🥗",desc:"오후에 졸리지 않게 가볍고 산뜻하게 먹고 싶은 날 추천."},
+      {name:"떡볶이",cat:"분식",price:8000,mood:["매콤","빠른"],emoji:"🍢",desc:"매콤달콤한 맛으로 기분을 바꾸고 싶은 날 잘 맞는 메뉴."},
+      {name:"김밥",cat:"분식",price:7000,mood:["깔끔","빠른"],emoji:"🍙",desc:"가성비 좋고 빠르게 먹기 좋은 실속형 점심."},
+      {name:"쌀국수",cat:"기타",price:11000,mood:["깔끔"],emoji:"🍜",desc:"향긋하고 담백한 국물로 부담 없이 먹기 좋은 메뉴."},
+      {name:"포케",cat:"기타",price:14000,mood:["깔끔","빠른"],emoji:"🥗",desc:"신선한 재료로 가볍게 먹되 포만감까지 챙기고 싶은 날."},
+      {name:"부대찌개",cat:"한식",price:11000,mood:["든든","매콤"],emoji:"🍲",desc:"여럿이 함께 먹기 좋고 진한 맛이 당기는 날 잘 맞는 메뉴."},
+      {name:"국밥",cat:"한식",price:10000,mood:["든든"],emoji:"🍲",desc:"뜨끈하고 든든한 한 그릇으로 빠르게 에너지 충전."},
+      {name:"카레",cat:"일식",price:9000,mood:["빠른","든든"],emoji:"🍛",desc:"호불호가 적고 한 접시로 간편하게 끝내기 좋은 메뉴."},
+      {name:"피자",cat:"양식",price:17000,mood:["든든"],emoji:"🍕",desc:"여럿이 함께 나눠 먹으며 기분전환하기 좋은 점심."}
+    ];
+
+    let state = {
+      category:"all",
+      mood:"all",
+      price:14000,
+      current:menus[0],
+      favorites:new Set(JSON.parse(localStorage.getItem("lunch-favs") || "[]")),
+      history:JSON.parse(localStorage.getItem("lunch-history") || "[]")
+    };
+
+    const $ = s => document.querySelector(s);
+    const $$ = s => document.querySelectorAll(s);
+
+    function filteredMenus(){
+      return menus.filter(m =>
+        (state.category==="all" || m.cat===state.category) &&
+        (state.mood==="all" || m.mood.includes(state.mood)) &&
+        m.price <= state.price
+      );
+    }
+
+    function setCurrent(menu, addHistory=true){
+      state.current = menu;
+      $("#menuName").textContent = menu.name;
+      $("#menuDesc").textContent = menu.desc;
+      $("#menuCategory").textContent = menu.cat;
+      $("#menuPrice").textContent = menu.price.toLocaleString()+"원";
+      $("#menuMood").textContent = menu.mood.join(" · ");
+      $("#menuEmoji").textContent = menu.emoji;
+      $("#favBtn").textContent = state.favorites.has(menu.name) ? "♥ 즐겨찾기됨" : "♡ 즐겨찾기";
+      if(addHistory){
+        state.history = [menu.name, ...state.history.filter(x=>x!==menu.name)].slice(0,8);
+        localStorage.setItem("lunch-history", JSON.stringify(state.history));
+        renderHistory();
+      }
+    }
+
+    function recommend(){
+      const list = filteredMenus();
+      if(!list.length){
+        toast("조건에 맞는 메뉴가 없어요. 예산이나 필터를 조금 넓혀보세요.");
+        return;
+      }
+      let pick = list[Math.floor(Math.random()*list.length)];
+      if(list.length > 1 && pick.name === state.current.name){
+        pick = list.find(x => x.name !== state.current.name) || pick;
+      }
+      setCurrent(pick, true);
+      renderCards();
+    }
+
+    function renderCards(){
+      const list = filteredMenus();
+      $("#candidateCount").textContent = `${list.length}개 메뉴`;
+      $("#cards").innerHTML = list.slice(0,9).map(m => `
+        <article class="menu-card" data-name="${m.name}">
+          <div class="top">
+            <span class="icon">${m.emoji}</span>
+            <button class="fav" data-fav="${m.name}" aria-label="즐겨찾기">${state.favorites.has(m.name)?"♥":"♡"}</button>
+          </div>
+          <h4>${m.name}</h4>
+          <p>${m.cat} · ${m.price.toLocaleString()}원 · ${m.mood.join(" / ")}</p>
+        </article>
+      `).join("") || `<div class="empty">조건에 맞는 메뉴가 없습니다.</div>`;
+
+      $$(".menu-card").forEach(card => {
+        card.addEventListener("click", e => {
+          if(e.target.closest(".fav")) return;
+          const m = menus.find(x=>x.name===card.dataset.name);
+          setCurrent(m,true);
+        });
+      });
+      $$("[data-fav]").forEach(btn => btn.addEventListener("click", e => {
+        e.stopPropagation();
+        toggleFavorite(btn.dataset.fav);
+      }));
+    }
+
+    function renderHistory(){
+      const box = $("#historyList");
+      if(!state.history.length){
+        box.innerHTML = `<div class="empty">아직 추천 기록이 없습니다.</div>`;
+        return;
+      }
+      box.innerHTML = state.history.map(name=>`<span class="history-item">${name}</span>`).join("");
+    }
+
+    function toggleFavorite(name){
+      if(state.favorites.has(name)) state.favorites.delete(name);
+      else state.favorites.add(name);
+      localStorage.setItem("lunch-favs", JSON.stringify([...state.favorites]));
+      renderCards();
+      if(state.current.name===name) $("#favBtn").textContent = state.favorites.has(name) ? "♥ 즐겨찾기됨" : "♡ 즐겨찾기";
+      toast(state.favorites.has(name) ? `${name}을(를) 즐겨찾기에 추가했어요.` : `${name}을(를) 즐겨찾기에서 뺐어요.`);
+    }
+
+    function toast(msg){
+      const t=$("#toast");
+      t.textContent=msg;t.classList.add("show");
+      setTimeout(()=>t.classList.remove("show"),1700);
+    }
+
+    $$("[data-filter]").forEach(group=>{
+      group.querySelectorAll(".chip").forEach(btn=>{
+        btn.addEventListener("click",()=>{
+          group.querySelectorAll(".chip").forEach(x=>x.classList.remove("active"));
+          btn.classList.add("active");
+          state[group.dataset.filter] = btn.dataset.value;
+          renderCards();
+        });
+      });
+    });
+
+    $("#price").addEventListener("input", e=>{
+      state.price=Number(e.target.value);
+      $("#priceLabel").textContent=state.price.toLocaleString()+"원";
+      renderCards();
+    });
+
+    $("#recommendBtn").addEventListener("click",recommend);
+    $("#againBtn").addEventListener("click",recommend);
+    $("#favBtn").addEventListener("click",()=>toggleFavorite(state.current.name));
+
+    const now = new Date();
+    $("#today").textContent = now.toLocaleDateString("ko-KR",{month:"long",day:"numeric",weekday:"short"})+" 점심";
+    renderCards();
+    renderHistory();
+    setCurrent(menus[0], false);
+  </script>
+</body>
+</html>
